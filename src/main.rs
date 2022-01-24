@@ -1,36 +1,47 @@
-#![feature(generators, generator_trait)]
-#![feature(type_name_of_val)]
+use std::future::Future;
 
-use std::any::type_name_of_val;
-use std::ops::{Generator, GeneratorState};
-use std::pin::Pin;
+#[derive(Debug, Default)]
+pub struct Container {
+    v: Vec<u8>,
+}
 
-fn main() {
-    let mut gen = fab(5);
-    println!("{:?}", type_name_of_val(&gen));
-    loop {
-        match Pin::new(&mut gen).resume(()) {
-            GeneratorState::Yielded(value) => println!("yield {}", value),
-            GeneratorState::Complete(ret) => {
-                println!("return {}", ret);
-                break;
-            }
+impl Container {
+    async fn mutation(&mut self) {
+        self.v.push(42);
+    }
+
+    async fn mutations(&mut self) {
+        let n = self.v.len() + 1;
+        for _ in 0..n {
+            self.mutation().await;
+        }
+    }
+
+    async fn generic_mutations<F, Fut>(&mut self, f: F)
+    where
+        F: Fn(&mut Self) -> Fut,
+        Fut: Future<Output = ()>,
+    {
+        let n = self.v.len() + 1;
+        for _ in 0..n {
+            f(self).await;
         }
     }
 }
 
-fn fab(mut n: u64) -> impl Generator<Yield=u64, Return=u64> {
-    move || {
-        let mut last = 0u64;
-        let mut current = 1;
-        yield last;
-        while n > 0 {
-            yield current;
-            let tmp = last;
-            last = current;
-            current = tmp + last;
-            n -= 1;
-        }
-        return last;
+#[tokio::main]
+async fn main() {
+    {
+        let mut c = Container::default();
+        c.mutations().await;
+        c.mutations().await;
+        println!("{:?}", c);
+    }
+
+    {
+        let mut c = Container::default();
+        c.generic_mutations(|con| con.mutation()).await;
+        c.generic_mutations(|con| con.mutation()).await;
+        println!("{:?}", c);
     }
 }
