@@ -1,36 +1,25 @@
-#![feature(generators, generator_trait)]
-#![feature(type_name_of_val)]
+use std::sync::Arc;
 
-use std::any::type_name_of_val;
-use std::ops::{Generator, GeneratorState};
-use std::pin::Pin;
+use tokio::sync::Mutex;
 
-fn main() {
-    let mut gen = fab(5);
-    println!("{:?}", type_name_of_val(&gen));
-    loop {
-        match Pin::new(&mut gen).resume(()) {
-            GeneratorState::Yielded(value) => println!("yield {}", value),
-            GeneratorState::Complete(ret) => {
-                println!("return {}", ret);
-                break;
-            }
-        }
-    }
+pub type Container = Arc<Mutex<u8>>;
+
+async fn outer(c: &Container) -> u8 {
+    let mut guard = c.lock().await;
+    let result = inner(c).await;
+    *guard += 1;
+    drop(guard);
+    result
 }
 
-fn fab(mut n: u64) -> impl Generator<Yield=u64, Return=u64> {
-    move || {
-        let mut last = 0u64;
-        let mut current = 1;
-        yield last;
-        while n > 0 {
-            yield current;
-            let tmp = last;
-            last = current;
-            current = tmp + last;
-            n -= 1;
-        }
-        return last;
-    }
+async fn inner(c: &Container) -> u8 {
+    let mut guard = c.lock().await;
+    *guard += 1;
+    *guard
+}
+
+#[tokio::main]
+async fn main() {
+    let c = Arc::new(Mutex::new(0_u8));
+    println!("{:?}", outer(&c).await);
 }
