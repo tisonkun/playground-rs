@@ -17,9 +17,9 @@ impl Container {
         }
     }
 
-    async fn generic_mutations<F, Fut>(&mut self, f: F)
+    async fn generic_mutations<'a, F, Fut>(&'a mut self, f: F)
     where
-        F: Fn(&mut Self) -> Fut,
+        F: Fn(&'a mut Self) -> Fut,
         Fut: Future<Output = ()>,
     {
         let n = self.v.len() + 1;
