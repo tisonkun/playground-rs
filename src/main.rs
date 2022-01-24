@@ -1,36 +1,38 @@
-#![feature(generators, generator_trait)]
-#![feature(type_name_of_val)]
+use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_s3::{Client, Error, Region, PKG_VERSION};
 
-use std::any::type_name_of_val;
-use std::ops::{Generator, GeneratorState};
-use std::pin::Pin;
+/// Lists your Amazon S3 buckets in the Region.
+/// # Arguments
+///
+/// * `[-r REGION]` - The Region in which the client is created. If not
+///   supplied, uses the value of the **AWS_REGION** environment variable. If
+///   the environment variable is not set, defaults to **us-west-2**.
+/// * `[-v]` - Whether to display additional information.
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    tracing_subscriber::fmt::init();
 
-fn main() {
-    let mut gen = fab(5);
-    println!("{:?}", type_name_of_val(&gen));
-    loop {
-        match Pin::new(&mut gen).resume(()) {
-            GeneratorState::Yielded(value) => println!("yield {}", value),
-            GeneratorState::Complete(ret) => {
-                println!("return {}", ret);
-                break;
-            }
-        }
+    let region_provider =
+        RegionProviderChain::first_try(Region::new("us-east-1")).or_default_provider();
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
+
+    println!();
+
+    println!("S3 client version: {}", PKG_VERSION);
+    println!("Region:            {}", shared_config.region().unwrap());
+    println!();
+
+    let resp = client.list_buckets().send().await?;
+    let buckets = resp.buckets().unwrap_or_default();
+    let num_buckets = buckets.len();
+
+    for bucket in buckets {
+        println!("{:?}", bucket);
     }
-}
 
-fn fab(mut n: u64) -> impl Generator<Yield=u64, Return=u64> {
-    move || {
-        let mut last = 0u64;
-        let mut current = 1;
-        yield last;
-        while n > 0 {
-            yield current;
-            let tmp = last;
-            last = current;
-            current = tmp + last;
-            n -= 1;
-        }
-        return last;
-    }
+    println!();
+    println!("Found {} buckets", num_buckets);
+
+    Ok(())
 }
