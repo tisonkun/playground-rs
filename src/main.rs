@@ -1,36 +1,35 @@
-#![feature(generators, generator_trait)]
-#![feature(type_name_of_val)]
+use async_trait::async_trait;
+use futures::future::BoxFuture;
 
-use std::any::type_name_of_val;
-use std::ops::{Generator, GeneratorState};
-use std::pin::Pin;
+#[async_trait]
+trait AsyncTrait {
+    async fn async_function(&self) -> Result<String, ()>;
+}
 
-fn main() {
-    let mut gen = fab(5);
-    println!("{:?}", type_name_of_val(&gen));
-    loop {
-        match Pin::new(&mut gen).resume(()) {
-            GeneratorState::Yielded(value) => println!("yield {}", value),
-            GeneratorState::Complete(ret) => {
-                println!("return {}", ret);
-                break;
-            }
-        }
+trait ManualAsyncTrait {
+    fn manual_async_function(&self) -> BoxFuture<Result<String, ()>>;
+}
+
+struct A;
+
+#[async_trait]
+impl AsyncTrait for A {
+    async fn async_function(&self) -> Result<String, ()> {
+        Ok("async_function".to_string())
     }
 }
 
-fn fab(mut n: u64) -> impl Generator<Yield=u64, Return=u64> {
-    move || {
-        let mut last = 0u64;
-        let mut current = 1;
-        yield last;
-        while n > 0 {
-            yield current;
-            let tmp = last;
-            last = current;
-            current = tmp + last;
-            n -= 1;
-        }
-        return last;
+impl ManualAsyncTrait for A {
+    fn manual_async_function(&self) -> BoxFuture<Result<String, ()>> {
+        let f = async { Ok("manual_async_function".to_string()) };
+        Box::pin(f)
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), ()> {
+    let a = A;
+    println!("{}", a.async_function().await?);
+    println!("{}", a.manual_async_function().await?);
+    Ok(())
 }
