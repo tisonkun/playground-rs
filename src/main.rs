@@ -28,7 +28,7 @@ impl ManualAsyncTrait for A {
             println!("manual_async_function: {}", self.0);
             if self.0.saturating_sub(1) > 0 {
                 self.0 = self.0.saturating_sub(1);
-                self.async_function().await
+                self.direct_async_function().await
             } else {
                 Ok("manual_async_function".to_string())
             }
@@ -37,9 +37,29 @@ impl ManualAsyncTrait for A {
     }
 }
 
+impl A {
+    fn direct_async_function<'a>(
+        &'a mut self,
+    ) -> impl std::future::Future<Output = Result<String, ()>> + 'a {
+        async {
+            println!("direct_async_function: {}", self.0);
+            if self.0.saturating_sub(1) > 0 {
+                self.0 = self.0.saturating_sub(1);
+                self.async_function().await
+            } else {
+                Ok("direct_async_function".to_string())
+            }
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), ()> {
-    println!("{}", A(10).async_function().await?);
-    println!("{}", A(10).manual_async_function().await?);
+    println!("Case 0:");
+    println!("{}\n", A(10).async_function().await?);
+    println!("Case 1:");
+    println!("{}\n", A(10).manual_async_function().await?);
+    println!("Case 2:");
+    println!("{}", A(10).direct_async_function().await?);
     Ok(())
 }
