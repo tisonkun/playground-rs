@@ -1,18 +1,15 @@
-use async_trait::async_trait;
-use futures::future::BoxFuture;
-
-#[async_trait]
+#[async_trait::async_trait]
 trait AsyncTrait {
     async fn async_function(&mut self) -> Result<String, ()>;
 }
 
 trait ManualAsyncTrait {
-    fn manual_async_function(&mut self) -> BoxFuture<Result<String, ()>>;
+    fn manual_async_function(&mut self) -> futures::future::BoxFuture<Result<String, ()>>;
 }
 
 struct A(u8);
 
-#[async_trait]
+#[async_trait::async_trait]
 impl AsyncTrait for A {
     async fn async_function(&mut self) -> Result<String, ()> {
         println!("async_function: {}", self.0);
@@ -26,7 +23,7 @@ impl AsyncTrait for A {
 }
 
 impl ManualAsyncTrait for A {
-    fn manual_async_function(&mut self) -> BoxFuture<Result<String, ()>> {
+    fn manual_async_function(&mut self) -> futures::future::BoxFuture<Result<String, ()>> {
         let f = async {
             println!("manual_async_function: {}", self.0);
             if self.0.saturating_sub(1) > 0 {
@@ -43,7 +40,6 @@ impl ManualAsyncTrait for A {
 #[tokio::main]
 async fn main() -> Result<(), ()> {
     println!("{}", A(10).async_function().await?);
-    println!("-------------------------");
     println!("{}", A(10).manual_async_function().await?);
     Ok(())
 }
