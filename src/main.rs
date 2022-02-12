@@ -15,10 +15,9 @@ fn reverse(ns: &mut Vec<u8>, lo: usize, hi: usize) {
 fn merge_sort_lookup(ns: &mut Vec<u8>, lo: usize, hi: usize) -> Option<u8> {
     if lo + 1 < hi {
         let mi = lo + ((hi - lo) >> 1);
-        let x = merge_sort_lookup(ns, lo, mi);
-        let y = merge_sort_lookup(ns, mi, hi);
-        let z = merge_lookup(ns, lo, mi, hi);
-        return x.or(y).or(z);
+        merge_sort_lookup(ns, lo, mi)
+            .or_else(|| merge_sort_lookup(ns, mi, hi))
+            .or_else(|| merge_lookup(ns, lo, mi, hi))
     } else {
         None
     }
@@ -27,8 +26,8 @@ fn merge_sort_lookup(ns: &mut Vec<u8>, lo: usize, hi: usize) -> Option<u8> {
 fn merge_lookup(ns: &mut Vec<u8>, lo: usize, mi: usize, hi: usize) -> Option<u8> {
     let mut i = lo;
     let mut j = mi;
+
     while i < j && j < hi {
-        let mut p = 0;
         while i < j {
             match ns[i].cmp(&ns[j]) {
                 Ordering::Less => i += 1,
@@ -41,6 +40,7 @@ fn merge_lookup(ns: &mut Vec<u8>, lo: usize, mi: usize, hi: usize) -> Option<u8>
             return None;
         }
 
+        let mut p = 0;
         while j < hi {
             match ns[i].cmp(&ns[j]) {
                 Ordering::Less => break,
@@ -56,6 +56,7 @@ fn merge_lookup(ns: &mut Vec<u8>, lo: usize, mi: usize, hi: usize) -> Option<u8>
         reverse(ns, j - p, j);
         reverse(ns, i, j);
     }
+
     None
 }
 
