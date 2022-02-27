@@ -1,9 +1,11 @@
 #![feature(generators, generator_trait)]
 #![feature(type_name_of_val)]
 
-use std::any::type_name_of_val;
-use std::ops::{Generator, GeneratorState};
-use std::pin::Pin;
+use std::{
+    any::type_name_of_val,
+    ops::{Generator, GeneratorState},
+    pin::Pin,
+};
 
 fn main() {
     let mut gen = fab(5);
@@ -19,7 +21,7 @@ fn main() {
     }
 }
 
-fn fab(mut n: u64) -> impl Generator<Yield=u64, Return=u64> {
+fn fab(mut n: u64) -> impl Generator<Yield = u64, Return = u64> {
     move || {
         let mut last = 0u64;
         let mut current = 1;
